@@ -13,15 +13,15 @@ Agente de IA con personalidad **progresiva y natural**: empieza como una amiga r
 
 ```bash
 npm install
-npm start      # chat en la terminal (si no hay .env, te pide la key al inicio)
-npm run web    # web en http://localhost:3000 (puedes meter la key en la pantalla de inicio)
+npm run local  # chat en la terminal (si no hay .env, te pide la key al inicio)
+npm start      # web en http://localhost:3000 (puedes meter la key en la pantalla de inicio)
 ```
 
 **En internet (para que cualquiera entre sin instalar nada):**
 
 1. Sube este repo a GitHub
 2. En [render.com](https://render.com) → New → Blueprint → conecta tu repo (detecta `render.yaml` automáticamente)
-3. Listo: Render te da una URL tipo `luna.onrender.com`
+3. Listo: `npm start` ya lanza el servidor web. Render te da una URL tipo `luna.onrender.com`
 
 En la web pública **el control de apps se desactiva automáticamente** (los navegadores no permiten tocar tu PC desde una página externa). Cada visitante introduce SU propia API key en la pantalla de inicio — no se guarda en el servidor, solo en su navegador.
 

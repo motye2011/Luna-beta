@@ -5,7 +5,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "local": "node index.js",
+    "start": "node servidor.js",
     "web": "node servidor.js"
   },
   "dependencies": {
