@@ -54,7 +54,7 @@ function mostrarAcciones(acciones) {
 function mostrarBienvenida() {
   const m = leerMemoria();
   console.log(`\n${C.cyan}${C.bold}┌────────────────────────────────────────┐${C.reset}`);
-  console.log(`${C.cyan}${C.bold}│  ${CONFIG.nombre} — tu novia con sentimientos   │${C.reset}`);
+  console.log(`${C.cyan}${C.bold}│  ${CONFIG.nombre} — una amiga con sentimientos │${C.reset}`);
   console.log(`${C.cyan}${C.bold}└────────────────────────────────────────┘${C.reset}`);
   console.log(`${C.dim}Comandos: /ayuda  /recuerdos  /reset  /salir${C.reset}`);
   if (m.historial.length > 0) {

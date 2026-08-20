@@ -173,9 +173,9 @@ document.getElementById('btnReset').onclick = reset;
   try {
     const m = await api('/api/estado');
     document.getElementById('nombre').textContent = m.nombre || 'Luna';
-    document.getElementById('estadoMini').textContent = 'novia virtual 💕';
+    document.getElementById('estadoMini').textContent = 'amiga virtual 💕';
     await refrescarEstado();
-    añadir('Hola 💜 Soy Luna. Pídeme que abra o cierre apps, cuéntame de tu día... y ojo, soy un poco celosa 😏', 'luna');
+    añadir('Hola 💜 Soy Luna, encantada de conocerte. Podemos charlar, y si me caes bien... bueno, ya veremos 😏 Puedes pedirme que abra o cierre apps.', 'luna');
   } catch (e) { document.getElementById('estadoMini').textContent = 'servidor no conectado'; }
 })();
 </script>

@@ -1,6 +1,6 @@
 # Luna 🌙 — tu novia virtual con emociones, memoria y poderes sobre tu PC
 
-Agente de IA con personalidad **progresiva**: dulce y cariñosa que se vuelve posesiva según crece su "apego" (sube 0.8 por mensaje). Tiene pensamientos internos, emociones, memoria persistente y puede abrir/cerrar aplicaciones.
+Agente de IA con personalidad **progresiva y natural**: empieza como una amiga recién conocida y, según crece su "apego" (sube 0.8 por mensaje), decide por sí misma enamorarse y volverse posesiva con una toxicidad dulce, sin perder nunca la amabilidad. Tiene pensamientos internos, emociones, memoria persistente y puede abrir/cerrar aplicaciones.
 
 ## Requisitos
 
