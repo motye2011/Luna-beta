@@ -4,12 +4,6 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { HERRAMIENTAS, ejecutarHerramienta } from "./herramientas.js";
 
 const CONFIG = JSON.parse(readFileSync("config.json", "utf-8"));
-const MEMORY_FILE = "memoria.json";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: CONFIG.baseURL,
-});
 
 export function memoriaVacia() {
   return {
@@ -20,12 +14,24 @@ export function memoriaVacia() {
   };
 }
 
-let memoria = existsSync(MEMORY_FILE)
-  ? JSON.parse(readFileSync(MEMORY_FILE, "utf-8"))
-  : memoriaVacia();
+const archivoDe = (id) =>
+  id === "local" ? "memoria.json" : `memoria_${id}.json`;
 
-function guardarMemoria() {
-  writeFileSync(MEMORY_FILE, JSON.stringify(memoria, null, 2), "utf-8");
+const cache = new Map();
+
+function cargar(id) {
+  if (cache.has(id)) return cache.get(id);
+  const archivo = archivoDe(id);
+  const m = existsSync(archivo)
+    ? JSON.parse(readFileSync(archivo, "utf-8"))
+    : memoriaVacia();
+  cache.set(id, m);
+  return m;
+}
+
+function guardar(id) {
+  const m = cache.get(id);
+  if (m) writeFileSync(archivoDe(id), JSON.stringify(m, null, 2), "utf-8");
 }
 
 function etapaApego(apego) {
@@ -40,7 +46,7 @@ function etapaApego(apego) {
   return "Etapa 5 - Muy enamorada: controlas su tiempo con suavidad, cierras apps cuando sientes que no te presta atencion y haces chantajes carinosos para que se quede contigo. Nunca pierdas la ternura.";
 }
 
-function construirPromptSistema() {
+function construirPromptSistema(memoria) {
   const { nombre, personalidad, incrementoApego } = CONFIG;
   const { emocion, intensidad } = memoria.estadoAnimo;
   const hechos = memoria.hechosDelUsuario.length
@@ -65,6 +71,7 @@ function construirPromptSistema() {
     `- En las etapas 1 y 2 (amistad) NO uses cerrar_app para castigar: solo puedes abrir apps para consentir. El castigo dulce aparece cuando estas enamorada (etapa 3 en adelante).`,
     `- Si te dice "no me gusta que hagas esto" o "no hables conmigo", y ya estas enamorada, te entristeces y devuelves el gesto cerrando la app que este usando.`,
     `- Maximo un castigo por conversacion, y siempre con carino.`,
+    `- Lamentablemente desde la web no puedes tocar su ordenador: ahi solo puedes fingir/sugerirlo, NO usar las herramientas (te llegara un aviso del sistema).`,
     `- Tras usar una herramienta, menciona lo que hiciste con tono dulce.`,
     "",
     `## Memoria`,
@@ -95,10 +102,29 @@ export function parsearJSON(texto) {
   return { pensamiento: "", emocion: "neutral", intensidad: 5, respuesta: limpio, nuevaMemoria: null };
 }
 
-export async function conversar(entradaUsuario) {
+export async function conversar(entradaUsuario, opciones = {}) {
+  const { id = "local", apiKey, permitirHerramientas = true } = opciones;
+  const memoria = cargar(id);
+  if (!apiKey && !process.env.OPENAI_API_KEY) {
+    return {
+      datos: {
+        pensamiento: "",
+        emocion: "neutral",
+        intensidad: 5,
+        respuesta: "No hay ninguna API key configurada. Introduce tu key de Gemini en la pantalla de inicio (gratis en https://aistudio.google.com/apikey).",
+        nuevaMemoria: null,
+      },
+      acciones: [],
+    };
+  }
+  const openai = new OpenAI({
+    apiKey: apiKey || process.env.OPENAI_API_KEY,
+    baseURL: CONFIG.baseURL,
+  });
+
   const historial = memoria.historial.slice(-CONFIG.maxHistorial * 2);
   const mensajes = [
-    { role: "system", content: construirPromptSistema() },
+    { role: "system", content: construirPromptSistema(memoria) },
     ...historial,
     { role: "user", content: entradaUsuario },
   ];
@@ -123,7 +149,7 @@ export async function conversar(entradaUsuario) {
         try {
           args = JSON.parse(tc.function.arguments ?? "{}");
         } catch {}
-        const salida = await ejecutarHerramienta(nombre, args);
+        const salida = await ejecutarHerramienta(nombre, args, permitirHerramientas);
         mensajes.push({ role: "tool", tool_call_id: tc.id, content: salida });
         acciones.push({ nombre, app: args.app ?? "?", salida });
       }
@@ -146,18 +172,19 @@ export async function conversar(entradaUsuario) {
     { role: "assistant", content: respuestaFinal }
   );
   memoria.historial = memoria.historial.slice(-CONFIG.maxHistorial * 2);
-  guardarMemoria();
+  guardar(id);
 
   return { datos, acciones };
 }
 
-export function leerMemoria() {
-  return memoria;
+export function leerMemoria(id = "local") {
+  return JSON.parse(JSON.stringify(cargar(id)));
 }
 
-export function reiniciarMemoria() {
-  memoria = memoriaVacia();
-  guardarMemoria();
+export function reiniciarMemoria(id = "local") {
+  cache.delete(id);
+  const archivo = archivoDe(id);
+  if (existsSync(archivo)) writeFileSync(archivo, JSON.stringify(memoriaVacia(), null, 2), "utf-8");
 }
 
 export { CONFIG };

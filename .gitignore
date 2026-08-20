@@ -1,3 +1,6 @@
 node_modules/
 .env
 memoria.json
+memoria_*.json
+server.log
+server.err

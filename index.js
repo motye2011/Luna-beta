@@ -3,6 +3,8 @@ loadEnv();
 
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { writeFileSync } from "node:fs";
+import { config as cfgDotenv } from "dotenv";
 import {
   CONFIG,
   conversar,
@@ -22,9 +24,22 @@ const C = {
   green: "\x1b[32m",
 };
 
-if (!process.env.OPENAI_API_KEY) {
-  console.log(`${C.red}Falta OPENAI_API_KEY en el archivo .env${C.reset}`);
-  process.exit(1);
+async function pedirClaveSiFalta() {
+  if (process.env.OPENAI_API_KEY) return;
+  const rl = createInterface({ input, output });
+  console.log(`${C.yellow}No hay API key configurada.${C.reset}`);
+  console.log(`${C.dim}Consigue una GRATIS en: https://aistudio.google.com/apikey${C.reset}`);
+  const clave = (
+    await rl.question(`${C.green}Pega aqui tu API key de Gemini:${C.reset} `)
+  ).trim();
+  rl.close();
+  if (!clave) {
+    console.log(`${C.red}Sin key no puedo funcionar. Adios.${C.reset}`);
+    process.exit(1);
+  }
+  writeFileSync(".env", `OPENAI_API_KEY=${clave}\n`, "utf-8");
+  cfgDotenv({ override: true });
+  console.log(`${C.dim}Key guardada en .env. Ya no tendras que volver a escribirla.${C.reset}\n`);
 }
 
 function mostrarPensamiento(texto) {
@@ -66,6 +81,7 @@ function mostrarBienvenida() {
 }
 
 async function main() {
+  await pedirClaveSiFalta();
   mostrarBienvenida();
   const rl = createInterface({ input, output });
 

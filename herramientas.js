@@ -82,7 +82,8 @@ const APPS_ABRIR = {
   vlc: "vlc",
 };
 
-export async function ejecutarHerramienta(nombre, args) {
+export async function ejecutarHerramienta(nombre, args, permitir = true) {
+  if (!permitir) return "No disponible desde la web: solo puedes sugerirlo en la conversacion.";
   const app = String(args?.app ?? "").trim().toLowerCase();
   if (!app) return "Falta el nombre de la app";
   try {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Luna - tu novia virtual</title>
+<title>Luna</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
   body {
@@ -32,7 +32,6 @@
   .emo { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px; background: rgba(255,180,107,.18); color: #ffb46b; }
   .pensa { font-size: 12px; font-style: italic; color: #8877b3; margin: 4px 0 8px; }
   .accion { font-size: 12px; color: #6fd3a6; margin-bottom: 6px; }
-  .hora { font-size: 10px; color: #666; margin-top: 4px; text-align: right; }
   footer { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.08); }
   .fila { display: flex; gap: 10px; }
   input {
@@ -52,14 +51,40 @@
   }
   .pulsando::after { content: '…'; animation: puntos 1s infinite; }
   @keyframes puntos { 0%{content:''} 33%{content:'.'} 66%{content:'..'} 100%{content:'...'} }
+  #inicio {
+    position: fixed; inset: 0; background: rgba(10,8,22,.97); z-index: 10;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .carta {
+    max-width: 420px; width: 100%; background: #1a1430; border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px; padding: 28px; text-align: center;
+  }
+  .carta .avatar { margin: 0 auto 14px; width: 64px; height: 64px; font-size: 30px; }
+  .carta h2 { font-size: 20px; margin-bottom: 6px; }
+  .carta p { font-size: 13px; color: #9b8cc8; margin-bottom: 18px; line-height: 1.5; }
+  .carta input { width: 100%; margin-bottom: 12px; text-align: center; border-radius: 12px; }
+  .carta a { color: #c4a8ff; font-size: 12px; }
+  .aviso { font-size: 11px; color: #6a5c94; margin-top: 12px; }
 </style>
 </head>
 <body>
+<div id="inicio">
+  <div class="carta">
+    <div class="avatar">🌙</div>
+    <h2 id="tituloInicio">Bienvenido a Luna</h2>
+    <p id="textoInicio">Necesita una API key de Gemini para funcionar (es GRATIS y tarda 1 minuto en conseguirla).</p>
+    <input id="apikey" type="password" placeholder="Pega aqui tu API key de Gemini" autocomplete="off">
+    <button id="btnInicio">Comenzar con Luna 💜</button>
+    <a href="https://aistudio.google.com/apikey" target="_blank">¿Como consigo una gratis? →</a>
+    <div class="aviso">La key se guarda solo en TU navegador y se envia directamente al modelo. No se almacena en el servidor.</div>
+  </div>
+</div>
+
 <div class="app">
   <header>
     <div class="avatar">🌙</div>
     <div class="titulo">
-      <h1 id="nombre">Luna</h1>
+      <h1>Luna</h1>
       <div class="sub" id="estadoMini">conectando...</div>
     </div>
     <div id="estado"></div>
@@ -73,14 +98,17 @@
     <div class="botones">
       <button class="mini" id="btnRecuerdos">🧠 Recuerdos</button>
       <button class="mini" id="btnReset">♻️ Reiniciar</button>
+      <button class="mini" id="btnKey">🔑 Cambiar key</button>
     </div>
   </footer>
 </div>
 
 <script>
+const inicio = document.getElementById('inicio');
 const chat = document.getElementById('chat');
 const input = document.getElementById('mensaje');
-let estado = { apego: 0 };
+let estado = { apego: 0, esLocal: false };
+let llave = localStorage.getItem('luna_api_key') || '';
 
 function añadir(html, clase) {
   const div = document.createElement('div');
@@ -90,20 +118,47 @@ function añadir(html, clase) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-function hora() {
-  return new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-}
-
 async function api(ruta, opciones) {
   const r = await fetch(ruta, opciones);
   return r.json();
 }
 
 async function refrescarEstado() {
-  const m = await api('/api/estado');
-  estado = m;
+  const e = await api('/api/estado');
+  estado = e;
+  const m = e.memoria;
   document.getElementById('estado').innerHTML =
     `💗 ${m.apego.toFixed(1)}/10<br>${m.estadoAnimo?.emocion ?? '-'}`;
+  document.getElementById('estadoMini').textContent = e.esLocal
+    ? 'modo local: controla tus apps 🔧'
+    : 'modo web: sin control de apps 🛡️';
+  return e;
+}
+
+function abrirPantallaClave() {
+  inicio.style.display = 'flex';
+}
+function cerrarPantallaClave() {
+  inicio.style.display = 'none';
+}
+
+document.getElementById('btnInicio').onclick = () => {
+  const k = document.getElementById('apikey').value.trim();
+  if (!k) { alert('Pega tu API key para comenzar'); return; }
+  llave = k;
+  localStorage.setItem('luna_api_key', k);
+  cerrarPantallaClave();
+  añadir('Hola 💜 Soy Luna, encantada de conocerte. Podemos charlar, y si me caes bien... bueno, ya veremos 😏', 'luna');
+  refrescarEstado();
+};
+
+async function iniciar() {
+  const e = await api('/api/estado');
+  if (!llave && !e.tieneClaveServidor) abrirPantallaClave();
+  else {
+    añadir('Hola 💜 Soy Luna, encantada de conocerte. Podemos charlar, y si me caes bien... bueno, ya veremos 😏', 'luna');
+  }
+  refrescarEstado();
 }
 
 async function enviar() {
@@ -122,13 +177,13 @@ async function enviar() {
     const r = await api('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mensaje: texto })
+      body: JSON.stringify({ mensaje: texto, apiKey: llave || undefined })
     });
     if (r.error) throw new Error(r.error);
     const d = r.datos;
     let html = '';
     for (const a of r.acciones ?? []) {
-      const icono = a.nombre === 'abrir_app' ? 'abre 🔧' : 'cierra 🔨';
+      const icono = a.nombre === 'abrir_app' ? 'abre' : 'cierra';
       html += `<div class="accion">🔧 Luna ${icono} "${a.app}" → ${a.salida}</div>`;
     }
     if (d.pensamiento) html += `<div class="pensa">💭 ${escapeHtml(d.pensamiento)}</div>`;
@@ -145,7 +200,8 @@ async function enviar() {
 }
 
 async function verRecuerdos() {
-  const m = await api('/api/estado');
+  const e = await api('/api/estado');
+  const m = e.memoria;
   let texto = 'Apego: ' + m.apego.toFixed(1) + '/10\n';
   if (m.hechosDelUsuario.length === 0) texto += 'Aún no recuerda nada de ti.';
   else texto += 'Luna recuerda:\n' + m.hechosDelUsuario.map(h => '• ' + h).join('\n');
@@ -168,16 +224,9 @@ document.getElementById('enviar').onclick = enviar;
 input.addEventListener('keydown', e => { if (e.key === 'Enter') enviar(); });
 document.getElementById('btnRecuerdos').onclick = verRecuerdos;
 document.getElementById('btnReset').onclick = reset;
+document.getElementById('btnKey').onclick = abrirPantallaClave;
 
-(async () => {
-  try {
-    const m = await api('/api/estado');
-    document.getElementById('nombre').textContent = m.nombre || 'Luna';
-    document.getElementById('estadoMini').textContent = 'amiga virtual 💕';
-    await refrescarEstado();
-    añadir('Hola 💜 Soy Luna, encantada de conocerte. Podemos charlar, y si me caes bien... bueno, ya veremos 😏 Puedes pedirme que abra o cierre apps.', 'luna');
-  } catch (e) { document.getElementById('estadoMini').textContent = 'servidor no conectado'; }
-})();
+iniciar();
 </script>
 </body>
 </html>
