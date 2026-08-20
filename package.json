@@ -1,0 +1,16 @@
+{
+  "name": "agente-amigo",
+  "version": "1.0.0",
+  "description": "Agente de IA con personalidad, emociones y memoria",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "web": "node servidor.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "openai": "^4.77.0"
+  }
+}

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luna - tu novia virtual</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+  body {
+    height: 100vh; display: flex; justify-content: center; background: #0f0c1d;
+    background: radial-gradient(circle at 20% 0%, #2b1b4d 0%, #0f0c1d 60%);
+    color: #eee;
+  }
+  .app { width: 100%; max-width: 720px; display: flex; flex-direction: column; }
+  header {
+    padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,.04); border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #ff6ec7, #a855f7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; box-shadow: 0 0 18px rgba(232,121,249,.5);
+  }
+  .titulo h1 { font-size: 17px; }
+  .titulo .sub { font-size: 12px; color: #9b8cc8; }
+  #estado { margin-left: auto; text-align: right; font-size: 12px; color: #c4a8ff; }
+  main { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .bur { max-width: 82%; padding: 10px 14px; border-radius: 16px; line-height: 1.45; white-space: pre-wrap; word-wrap: break-word; }
+  .user { align-self: flex-end; background: linear-gradient(135deg, #7c3aed, #a855f7); border-bottom-right-radius: 4px; }
+  .luna { align-self: flex-start; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.08); border-bottom-left-radius: 4px; }
+  .emo { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px; background: rgba(255,180,107,.18); color: #ffb46b; }
+  .pensa { font-size: 12px; font-style: italic; color: #8877b3; margin: 4px 0 8px; }
+  .accion { font-size: 12px; color: #6fd3a6; margin-bottom: 6px; }
+  .hora { font-size: 10px; color: #666; margin-top: 4px; text-align: right; }
+  footer { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.08); }
+  .fila { display: flex; gap: 10px; }
+  input {
+    flex: 1; padding: 12px 16px; border-radius: 24px; border: 1px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.06); color: #eee; outline: none; font-size: 14px;
+  }
+  input:focus { border-color: #a855f7; }
+  button {
+    padding: 12px 18px; border: none; border-radius: 24px; cursor: pointer; font-size: 14px;
+    background: linear-gradient(135deg, #7c3aed, #d946ef); color: #fff; font-weight: 600;
+  }
+  button:hover { filter: brightness(1.15); }
+  .botones { display: flex; gap: 8px; margin-top: 10px; }
+  .mini {
+    flex: 1; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    color: #c4a8ff; font-size: 12px; padding: 8px;
+  }
+  .pulsando::after { content: '…'; animation: puntos 1s infinite; }
+  @keyframes puntos { 0%{content:''} 33%{content:'.'} 66%{content:'..'} 100%{content:'...'} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="avatar">🌙</div>
+    <div class="titulo">
+      <h1 id="nombre">Luna</h1>
+      <div class="sub" id="estadoMini">conectando...</div>
+    </div>
+    <div id="estado"></div>
+  </header>
+  <main id="chat"></main>
+  <footer>
+    <div class="fila">
+      <input id="mensaje" placeholder="Escribele algo a Luna..." autocomplete="off">
+      <button id="enviar">Enviar</button>
+    </div>
+    <div class="botones">
+      <button class="mini" id="btnRecuerdos">🧠 Recuerdos</button>
+      <button class="mini" id="btnReset">♻️ Reiniciar</button>
+    </div>
+  </footer>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const input = document.getElementById('mensaje');
+let estado = { apego: 0 };
+
+function añadir(html, clase) {
+  const div = document.createElement('div');
+  div.className = 'bur ' + clase;
+  div.innerHTML = html;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function hora() {
+  return new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function api(ruta, opciones) {
+  const r = await fetch(ruta, opciones);
+  return r.json();
+}
+
+async function refrescarEstado() {
+  const m = await api('/api/estado');
+  estado = m;
+  document.getElementById('estado').innerHTML =
+    `💗 ${m.apego.toFixed(1)}/10<br>${m.estadoAnimo?.emocion ?? '-'}`;
+}
+
+async function enviar() {
+  const texto = input.value.trim();
+  if (!texto) return;
+  input.value = '';
+  añadir(escapeHtml(texto), 'user');
+
+  const burLuna = document.createElement('div');
+  burLuna.className = 'bur luna pulsando';
+  burLuna.textContent = 'Luna está pensando';
+  chat.appendChild(burLuna);
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    const r = await api('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mensaje: texto })
+    });
+    if (r.error) throw new Error(r.error);
+    const d = r.datos;
+    let html = '';
+    for (const a of r.acciones ?? []) {
+      const icono = a.nombre === 'abrir_app' ? 'abre 🔧' : 'cierra 🔨';
+      html += `<div class="accion">🔧 Luna ${icono} "${a.app}" → ${a.salida}</div>`;
+    }
+    if (d.pensamiento) html += `<div class="pensa">💭 ${escapeHtml(d.pensamiento)}</div>`;
+    if (d.emocion) html += `<span class="emo">${escapeHtml(d.emocion)}</span>`;
+    html += escapeHtml(d.respuesta ?? '');
+    burLuna.classList.remove('pulsando');
+    burLuna.innerHTML = html;
+    await refrescarEstado();
+  } catch (err) {
+    burLuna.classList.remove('pulsando');
+    burLuna.innerHTML = `<span style="color:#ff8080">Error: ${escapeHtml(err.message)}</span>`;
+  }
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function verRecuerdos() {
+  const m = await api('/api/estado');
+  let texto = 'Apego: ' + m.apego.toFixed(1) + '/10\n';
+  if (m.hechosDelUsuario.length === 0) texto += 'Aún no recuerda nada de ti.';
+  else texto += 'Luna recuerda:\n' + m.hechosDelUsuario.map(h => '• ' + h).join('\n');
+  añadir(texto.replace(/\n/g, '<br>'), 'luna');
+}
+
+async function reset() {
+  await api('/api/reset', { method: 'POST' });
+  añadir('🔄 <i>Luna ha olvidado todo... empiezan de nuevo.</i>', 'luna');
+  await refrescarEstado();
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+document.getElementById('enviar').onclick = enviar;
+input.addEventListener('keydown', e => { if (e.key === 'Enter') enviar(); });
+document.getElementById('btnRecuerdos').onclick = verRecuerdos;
+document.getElementById('btnReset').onclick = reset;
+
+(async () => {
+  try {
+    const m = await api('/api/estado');
+    document.getElementById('nombre').textContent = m.nombre || 'Luna';
+    document.getElementById('estadoMini').textContent = 'novia virtual 💕';
+    await refrescarEstado();
+    añadir('Hola 💜 Soy Luna. Pídeme que abra o cierre apps, cuéntame de tu día... y ojo, soy un poco celosa 😏', 'luna');
+  } catch (e) { document.getElementById('estadoMini').textContent = 'servidor no conectado'; }
+})();
+</script>
+</body>
+</html>
